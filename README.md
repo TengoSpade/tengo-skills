@@ -1,12 +1,12 @@
 # tengo-skills
 
-A collection of Claude Code skills for session management and workflow.
+A collection of AI skills for session management and workflow.
 
 ## Skills
 
 ### [wrap-up](./wrap-up/SKILL.md)
 
-End a Claude Code session by writing a structured `.md` file that serves two readers: a human summary (what happened, what's next) and a dense token-optimized section for Claude to resume seamlessly.
+End a an AI session by writing a structured `.md` file that serves two readers: a human summary (what happened, what's next) and a dense token-optimized section for Claude to resume seamlessly.
 
 **Invoke:** `/wrap-up`
 
@@ -14,7 +14,7 @@ Supports optional modifiers: `--compact` (runs `/compact` after saving), `--inte
 
 ### [pick-up](./pick-up/SKILL.md)
 
-Resume a Claude Code session from a previously written wrap-up file. Auto-discovers the most recent wrap-up in `./wrap-ups/`, verifies environment state, re-populates todos, and stages the first action without executing it.
+Resume an AI session from a previously written wrap-up file. Auto-discovers the most recent wrap-up in `./wrap-ups/`, verifies environment state, re-populates todos, and stages the first action without executing it.
 
 **Invoke:** `/pick-up` or `/pick-up path/to/wrap-up.md`
 
