@@ -1,4 +1,4 @@
-# claude-skills
+# tengo-skills
 
 A collection of Claude Code skills for session management and workflow.
 
