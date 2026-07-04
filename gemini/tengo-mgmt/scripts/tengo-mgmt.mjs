@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -105,6 +105,40 @@ export async function loadState(projectDir) {
       .filter(Boolean)
       .map((line) => JSON.parse(line)),
   };
+}
+
+export async function appendEvent(projectDir, event) {
+  const orchestratorDir = join(projectDir, STATE_DIR);
+  await mkdir(orchestratorDir, { recursive: true });
+  await appendFile(
+    join(orchestratorDir, "events.jsonl"),
+    `${JSON.stringify({ timestamp: new Date().toISOString(), ...event })}\n`,
+    "utf8",
+  );
+}
+
+export async function loadCommands(projectDir) {
+  return readJsonl(join(projectDir, STATE_DIR, "commands.jsonl"));
+}
+
+export async function updateCommandStatus(projectDir, commandUpdate) {
+  const commandsPath = join(projectDir, STATE_DIR, "commands.jsonl");
+  const commands = await loadCommands(projectDir);
+  const index = commands.findIndex((command) => command.id === commandUpdate.id);
+  const nextCommand = {
+    ...(index >= 0 ? commands[index] : {}),
+    updatedAt: new Date().toISOString(),
+    ...commandUpdate,
+  };
+
+  if (index >= 0) {
+    commands[index] = nextCommand;
+  } else {
+    commands.push(nextCommand);
+  }
+
+  await writeJsonl(commandsPath, commands);
+  return nextCommand;
 }
 
 function normalizeAgent(agent, defaultModel, defaultReasoningEffort) {
@@ -251,6 +285,20 @@ async function writeJson(path, value) {
 
 async function readJson(path) {
   return JSON.parse(await readFile(path, "utf8"));
+}
+
+async function readJsonl(path) {
+  const text = await readFile(path, "utf8").catch(() => "");
+  return text
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+}
+
+async function writeJsonl(path, values) {
+  await mkdir(dirname(path), { recursive: true });
+  const lines = values.map((value) => JSON.stringify(value)).join("\n");
+  await writeFile(path, lines ? `${lines}\n` : "", "utf8");
 }
 
 async function main(argv) {

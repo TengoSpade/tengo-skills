@@ -7,7 +7,10 @@ import { test } from "node:test";
 import {
   ARTIFACT_CATEGORIES,
   STATUS_VALUES,
+  appendEvent,
+  loadCommands,
   createInitialState,
+  updateCommandStatus,
   loadState,
   validateProposedAgent,
   writeState,
@@ -159,6 +162,47 @@ test("writeState and loadState round-trip portable .orchestrator files", async (
     assert.match(instruction, /Model: gemini-default/);
     assert.match(instruction, /Reasoning Effort: medium/);
     assert.equal(loaded.events[0].type, "agent.created");
+  } finally {
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
+test("command helpers update queued dashboard commands", async () => {
+  const projectDir = await mkdtemp(join(tmpdir(), "tengo-mgmt-"));
+  try {
+    const state = createInitialState({
+      project: { name: "Commands", goal: "Process queue", sourcePlatform: "codex" },
+      events: [],
+    });
+    await writeState(projectDir, state);
+    await appendEvent(projectDir, {
+      type: "command.queued",
+      commandId: "cmd-1",
+      message: "agent.start",
+    });
+    await updateCommandStatus(projectDir, {
+      id: "cmd-1",
+      timestamp: "2026-07-04T00:00:00.000Z",
+      status: "queued",
+      source: "dashboard",
+      type: "agent.start",
+      agentId: "agent-reviewer",
+    });
+
+    let commands = await loadCommands(projectDir);
+    assert.equal(commands[0].status, "queued");
+
+    await updateCommandStatus(projectDir, {
+      id: "cmd-1",
+      status: "complete",
+      result: "Started agent-reviewer",
+    });
+    commands = await loadCommands(projectDir);
+    const loaded = await loadState(projectDir);
+
+    assert.equal(commands[0].status, "complete");
+    assert.equal(commands[0].result, "Started agent-reviewer");
+    assert.ok(loaded.events.some((event) => event.type === "command.queued"));
   } finally {
     await rm(projectDir, { recursive: true, force: true });
   }
