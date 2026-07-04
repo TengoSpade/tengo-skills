@@ -1,6 +1,6 @@
 # tengo-skills
 
-A collection of AI skills for session management and workflow.
+A collection of transferable AI skills for session management, workflow, and multi-agent project orchestration.
 
 ## Skills
 
@@ -18,11 +18,17 @@ Resume an AI session from a previously written wrap-up file. Auto-discovers the 
 
 **Invoke:** `/pick-up` or `/pick-up path/to/wrap-up.md`
 
+### [tengo-mgmt](./tengo-mgmt/SKILL.md)
+
+Start and manage a per-project multi-agent workflow with an orchestrator agent, project-local `.orchestrator/` state, per-agent model assignments, and a local dashboard template.
+
+**Invoke:** when coordinating project agents, creating an orchestration dashboard, assigning models to agents, or tracking workstreams.
+
 ---
 
 ## Installation
 
-Copy the skill folder(s) into `~/.claude/skills/`:
+Root skill folders are the Claude Code / portable install targets. Copy the skill folder(s) into `~/.claude/skills/`:
 
 ```bash
 # wrap-up
@@ -30,9 +36,26 @@ cp -r wrap-up ~/.claude/skills/wrap-up
 
 # pick-up
 cp -r pick-up ~/.claude/skills/pick-up
+
+# tengo-mgmt
+cp -r tengo-mgmt ~/.claude/skills/tengo-mgmt
 ```
 
 Claude Code auto-discovers skills in `~/.claude/skills/` — no further config needed.
+
+Platform-specific install targets are also provided:
+
+```bash
+# Codex
+cp -r codex/wrap-up ~/.agents/skills/wrap-up
+cp -r codex/pick-up ~/.agents/skills/pick-up
+cp -r codex/tengo-mgmt ~/.agents/skills/tengo-mgmt
+
+# Gemini
+cp -r gemini/wrap-up <gemini-skills-dir>/wrap-up
+cp -r gemini/pick-up <gemini-skills-dir>/pick-up
+cp -r gemini/tengo-mgmt <gemini-skills-dir>/tengo-mgmt
+```
 
 ---
 
@@ -44,4 +67,7 @@ Claude Code auto-discovers skills in `~/.claude/skills/` — no further config n
 
 # At the start of a new session in the same project
 /pick-up
+
+# When starting or managing a multi-agent project
+Use tengo-mgmt to create project orchestration state and dashboard assets.
 ```
