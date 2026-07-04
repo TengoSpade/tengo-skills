@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -136,12 +136,28 @@ test("writeState and loadState round-trip portable .orchestrator files", async (
 
     await writeState(projectDir, state);
     const loaded = await loadState(projectDir);
+    const instruction = await readFile(
+      join(projectDir, ".orchestrator", "agent-instructions", "agent-planner.md"),
+      "utf8",
+    );
 
     assert.equal(loaded.project.name, "Round Trip");
     assert.equal(loaded.agents[0].platform, "gemini");
     assert.equal(loaded.workstreams[0].id, "discovery");
     assert.equal(loaded.artifacts[0].category, "specs-wrapups");
     assert.equal(loaded.artifacts[0].path, "docs/superpowers/specs/gameplay.md");
+    assert.ok(
+      loaded.artifacts.some(
+        (artifact) =>
+          artifact.category === "codex-agent-instructions" &&
+          artifact.path === ".orchestrator/agent-instructions/agent-planner.md" &&
+          artifact.owningAgent === "agent-planner",
+      ),
+    );
+    assert.match(instruction, /# Planner/);
+    assert.match(instruction, /Role: Plan work/);
+    assert.match(instruction, /Model: gemini-default/);
+    assert.match(instruction, /Reasoning Effort: medium/);
     assert.equal(loaded.events[0].type, "agent.created");
   } finally {
     await rm(projectDir, { recursive: true, force: true });

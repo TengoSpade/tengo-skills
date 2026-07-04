@@ -17,10 +17,11 @@ Tengo Mgmt is a platform-neutral orchestration skill. Use it to help a user star
 3. Ask concise intake questions about goal, constraints, success criteria, workstreams, autonomy, and default model/reasoning preferences.
 4. Propose a conservative initial team. Each proposed agent must include role, workstream, responsibility, initial prompt, expected output, model, reasoning effort, agent mode, and boundaries.
 5. Create the initial `.orchestrator/` state with `scripts/tengo-mgmt.mjs`.
-6. Create initial agents automatically when platform tools support it. If they do not, mark agents `pending` or `manual`.
-7. Start or copy the dashboard template from `assets/dashboard-template/`.
-8. Register important artifacts as agents create files, specs, reviews, assets, or state outputs.
-9. Keep state updated as agents are messaged, blocked, completed, reassigned, or closed.
+6. Create one instruction file per agent under `.orchestrator/agent-instructions/` and register it as a Codex / Agent Instructions artifact.
+7. Create initial agents automatically when platform tools support it. If they do not, mark agents `pending` or `manual`.
+8. Start or copy the dashboard template from `assets/dashboard-template/`.
+9. Register important artifacts as agents create files, specs, reviews, assets, or state outputs.
+10. Keep state updated as agents are messaged, blocked, completed, reassigned, or closed.
 
 ## Agent Creation Rules
 
@@ -36,6 +37,7 @@ The shared state lives in `.orchestrator/`:
 
 - `project.json`: project identity, goal, constraints, success criteria, source platform, and default model policy.
 - `agents.json`: stable project-local agent ids plus optional platform handles.
+- `agent-instructions/*.md`: generated per-agent operating instructions for dashboard visibility and handoff.
 - `workstreams.json`: project workstream lanes, dependencies, blockers, and status.
 - `artifacts.json`: registered project outputs, instruction files, assets, specs, review docs, references, and state data.
 - `events.jsonl`: append-only activity feed.
@@ -45,6 +47,8 @@ Do not make dashboard behavior depend on a platform-specific thread or session i
 ## Artifacts
 
 The dashboard should include an Artifacts section with a category dropdown. Agents should register important outputs in `artifacts.json`; the dashboard may also auto-scan known project folders for common files.
+
+During setup, create an instruction file per agent in `.orchestrator/agent-instructions/` and register each one with category `codex-agent-instructions`. These files should include the agent id, role, workstream, model, reasoning effort, mode, responsibility, current task, initial prompt, expected output, and boundaries.
 
 Use these artifact categories:
 

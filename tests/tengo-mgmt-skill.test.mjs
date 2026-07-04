@@ -26,6 +26,8 @@ test("SKILL.md exposes the tengo-mgmt portable orchestration skill", async () =>
   assert.match(skill, /approval/i);
   assert.match(skill, /artifacts/i);
   assert.match(skill, /artifacts\.json/);
+  assert.match(skill, /agent-instructions/i);
+  assert.match(skill, /instruction file per agent/i);
   assert.match(skill, /Codex \/ Agent Instructions/i);
   assert.match(skill, /Generated Assets/i);
   assert.match(skill, /Specs \/ Wrap-ups/i);

@@ -83,7 +83,11 @@ export async function writeState(projectDir, state) {
   await writeJson(join(orchestratorDir, "project.json"), state.project);
   await writeJson(join(orchestratorDir, "agents.json"), state.agents);
   await writeJson(join(orchestratorDir, "workstreams.json"), state.workstreams);
-  await writeJson(join(orchestratorDir, "artifacts.json"), state.artifacts ?? []);
+  const instructionArtifacts = await writeAgentInstructions(orchestratorDir, state.agents ?? []);
+  await writeJson(
+    join(orchestratorDir, "artifacts.json"),
+    mergeArtifacts(state.artifacts ?? [], instructionArtifacts),
+  );
   const events = (state.events ?? []).map((event) => JSON.stringify(event)).join("\n");
   await writeFile(join(orchestratorDir, "events.jsonl"), events ? `${events}\n` : "", "utf8");
 }
@@ -113,6 +117,8 @@ function normalizeAgent(agent, defaultModel, defaultReasoningEffort) {
     workstream: agent.workstream,
     responsibility: agent.responsibility ?? "",
     currentTask: agent.currentTask ?? "",
+    initialPrompt: agent.initialPrompt ?? "",
+    expectedOutput: agent.expectedOutput ?? "",
     model: agent.model ?? defaultModel,
     reasoningEffort: agent.reasoningEffort ?? defaultReasoningEffort,
     status: normalizeStatus(agent.status ?? "queued"),
@@ -120,8 +126,84 @@ function normalizeAgent(agent, defaultModel, defaultReasoningEffort) {
     agentMode: agent.agentMode ?? "manual",
     platformHandles: handle ? { [platform]: handle } : {},
     blockers: agent.blockers ?? [],
+    boundaries: agent.boundaries ?? [],
     lastUpdate: agent.lastUpdate ?? new Date().toISOString(),
   };
+}
+
+async function writeAgentInstructions(orchestratorDir, agents) {
+  const instructionsDir = join(orchestratorDir, "agent-instructions");
+  await mkdir(instructionsDir, { recursive: true });
+  const artifacts = [];
+
+  for (const agent of agents) {
+    const agentId = agent.id ?? slugify(agent.displayName ?? "agent");
+    const relativePath = `${STATE_DIR}/agent-instructions/${agentId}.md`;
+    await writeFile(join(instructionsDir, `${agentId}.md`), renderAgentInstruction(agent), "utf8");
+    artifacts.push(
+      normalizeArtifact(
+        {
+          id: `artifact-${agentId}-instructions`,
+          title: `${agent.displayName ?? agentId} Instructions`,
+          category: "codex-agent-instructions",
+          path: relativePath,
+          owningAgent: agentId,
+          workstream: agent.workstream ?? "",
+          status: "complete",
+          description: `Operating instructions for ${agent.displayName ?? agentId}`,
+        },
+        new Date().toISOString(),
+      ),
+    );
+  }
+
+  return artifacts;
+}
+
+function renderAgentInstruction(agent) {
+  const lines = [
+    `# ${agent.displayName ?? agent.id ?? "Agent"}`,
+    "",
+    `- Agent ID: ${agent.id ?? ""}`,
+    `- Role: ${agent.role ?? ""}`,
+    `- Workstream: ${agent.workstream ?? ""}`,
+    `- Status: ${agent.status ?? "queued"}`,
+    `- Model: ${agent.model ?? "platform-default"}`,
+    `- Reasoning Effort: ${agent.reasoningEffort ?? "medium"}`,
+    `- Mode: ${agent.agentMode ?? "manual"}`,
+    "",
+    "## Responsibility",
+    "",
+    agent.responsibility || "No responsibility recorded.",
+    "",
+    "## Current Task",
+    "",
+    agent.currentTask || "Waiting for assignment.",
+    "",
+    "## Initial Prompt",
+    "",
+    agent.initialPrompt || "No initial prompt recorded.",
+    "",
+    "## Expected Output",
+    "",
+    agent.expectedOutput || "No expected output recorded.",
+  ];
+
+  if (agent.boundaries?.length) {
+    lines.push("", "## Boundaries", "", ...agent.boundaries.map((boundary) => `- ${boundary}`));
+  }
+
+  return `${lines.join("\n")}\n`;
+}
+
+function mergeArtifacts(explicitArtifacts, generatedArtifacts) {
+  const byPath = new Map();
+  for (const artifact of generatedArtifacts) byPath.set(artifact.path || artifact.id, artifact);
+  for (const artifact of explicitArtifacts) byPath.set(artifact.path || artifact.id, artifact);
+  return [...explicitArtifacts, ...generatedArtifacts].filter((artifact, index, artifacts) => {
+    const key = artifact.path || artifact.id;
+    return artifacts.findIndex((candidate) => (candidate.path || candidate.id) === key) === index;
+  }).map((artifact) => byPath.get(artifact.path || artifact.id));
 }
 
 function normalizeWorkstream(workstream) {
