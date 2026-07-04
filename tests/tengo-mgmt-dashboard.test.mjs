@@ -18,6 +18,11 @@ test("dashboard template is dependency-free and startable", async () => {
   assert.match(server, /createServer/);
   assert.match(server, /\/api\/state/);
   assert.match(server, /\/api\/events/);
+  assert.match(server, /\/api\/commands/);
+  assert.match(server, /\/api\/orchestrator\/message/);
+  assert.match(server, /agentStartRoute/);
+  assert.match(server, /agent\.start/);
+  assert.match(server, /commands\.jsonl/);
   assert.match(server, /artifacts\.json/);
   assert.match(server, /\.orchestrator/);
 });
@@ -41,6 +46,9 @@ test("dashboard UI contains chat-first workstream, artifact, and agent managemen
   assert.match(combined, /References/i);
   assert.match(combined, /agents/i);
   assert.match(combined, /create agent/i);
+  assert.match(combined, /queueOrchestratorMessage/);
+  assert.match(combined, /queueAgentStart/);
+  assert.match(combined, /Pending Codex commands/i);
   assert.match(combined, /model/i);
   assert.match(combined, /reasoning/i);
   assert.match(combined, /blocked|pending|manual/i);

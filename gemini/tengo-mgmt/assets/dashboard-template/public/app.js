@@ -3,6 +3,7 @@ const state = {
   agents: [],
   workstreams: [],
   artifacts: [],
+  commands: [],
   events: [],
 };
 
@@ -18,11 +19,19 @@ const artifactCategoryLabels = {
 
 document.getElementById("refresh-button").addEventListener("click", loadDashboard);
 document.getElementById("artifact-category-filter").addEventListener("change", renderArtifacts);
-document.getElementById("chat-form").addEventListener("submit", (event) => {
+document.getElementById("chat-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const input = document.getElementById("chat-input");
-  addLocalMessage("You", input.value || "Status?");
+  const message = input.value.trim() || "Status?";
+  addLocalMessage("You", message);
   input.value = "";
+  try {
+    const command = await queueOrchestratorMessage(message);
+    addLocalMessage("Tengo Mgmt", `Queued command ${command.id} for Codex.`);
+    await loadDashboard();
+  } catch (error) {
+    addLocalMessage("Tengo Mgmt", `Could not queue command: ${error.message}`);
+  }
 });
 document.getElementById("agent-form").addEventListener("submit", (event) => {
   event.preventDefault();
@@ -55,7 +64,7 @@ function renderChat() {
   log.replaceChildren(
     messageElement(
       "Orchestrator",
-      `Tracking ${state.agents.length} agents across ${state.workstreams.length} workstreams. Blocked, pending, and manual agents are visible below.`,
+      `Tracking ${state.agents.length} agents across ${state.workstreams.length} workstreams. Pending Codex commands: ${pendingCommandCount()}.`,
     ),
   );
 }
@@ -138,7 +147,25 @@ function agentElement(agent) {
     <p>${escapeHtml(agent.role || "No role recorded")}</p>
     <p class="meta">Status: ${escapeHtml(agent.status || "pending")} | Model: ${escapeHtml(agent.model || "project default")} | Reasoning: ${escapeHtml(agent.reasoningEffort || "medium")}</p>
     <p class="meta">Task: ${escapeHtml(agent.currentTask || "Waiting")}</p>
+    <div class="agent-actions"></div>
   `;
+  const actions = card.querySelector(".agent-actions");
+  const startButton = document.createElement("button");
+  startButton.className = "secondary-button";
+  startButton.type = "button";
+  startButton.textContent = "Start";
+  startButton.addEventListener("click", async () => {
+    startButton.disabled = true;
+    try {
+      const command = await queueAgentStart(agent.id);
+      addLocalMessage("Tengo Mgmt", `Queued ${agent.displayName || agent.id} start command ${command.id} for Codex.`);
+      await loadDashboard();
+    } catch (error) {
+      addLocalMessage("Tengo Mgmt", `Could not queue agent start: ${error.message}`);
+      startButton.disabled = false;
+    }
+  });
+  actions.append(startButton);
   return card;
 }
 
@@ -151,6 +178,29 @@ function emptyAgentElement() {
 
 function addLocalMessage(sender, text) {
   document.getElementById("chat-log").append(messageElement(sender, text));
+}
+
+async function queueOrchestratorMessage(message) {
+  return postJson("/api/orchestrator/message", { message });
+}
+
+async function queueAgentStart(agentId) {
+  return postJson(`/api/agents/${encodeURIComponent(agentId)}/start`, {});
+}
+
+async function postJson(url, body) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`Request failed with ${response.status}`);
+  const payload = await response.json();
+  return payload.command;
+}
+
+function pendingCommandCount() {
+  return state.commands.filter((command) => command.status === "queued").length;
 }
 
 function messageElement(sender, text) {

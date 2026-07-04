@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
-import { readFile, readdir } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { appendFile, mkdir, readFile, readdir } from "node:fs/promises";
 import { basename, extname, join, normalize } from "node:path";
 
 const port = Number(process.env.PORT ?? 4783);
@@ -29,15 +30,57 @@ const artifactScanRules = [
   { directory: "references", category: "references", extensions: [".md", ".pdf", ".txt"] },
 ];
 
+const agentStartRoute = /^\/api\/agents\/(?<agentId>[^/]+)\/start$/;
+const agentMessageRoute = /^\/api\/agents\/(?<agentId>[^/]+)\/message$/;
+
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url ?? "/", `http://${request.headers.host}`);
-    if (url.pathname === "/api/state") {
+    const agentStartMatch = url.pathname.match(agentStartRoute);
+    const agentMessageMatch = url.pathname.match(agentMessageRoute);
+
+    if (request.method === "GET" && url.pathname === "/api/state") {
       await sendJson(response, await readState());
       return;
     }
-    if (url.pathname === "/api/events") {
+    if (request.method === "GET" && url.pathname === "/api/events") {
       await sendJson(response, { events: await readEvents() });
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/api/commands") {
+      await sendJson(response, { commands: await readCommands() });
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/orchestrator/message") {
+      const body = await readRequestJson(request);
+      const command = await appendCommand({
+        type: "orchestrator.message",
+        message: body.message ?? "",
+      });
+      await sendJson(response, { command });
+      return;
+    }
+    if (request.method === "POST" && agentStartMatch?.groups?.agentId) {
+      const command = await appendCommand({
+        type: "agent.start",
+        agentId: decodeURIComponent(agentStartMatch.groups.agentId),
+      });
+      await sendJson(response, { command });
+      return;
+    }
+    if (request.method === "POST" && agentMessageMatch?.groups?.agentId) {
+      const body = await readRequestJson(request);
+      const command = await appendCommand({
+        type: "agent.message",
+        agentId: decodeURIComponent(agentMessageMatch.groups.agentId),
+        message: body.message ?? "",
+      });
+      await sendJson(response, { command });
+      return;
+    }
+    if (url.pathname.startsWith("/api/")) {
+      response.writeHead(404, { "content-type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify({ error: "Not found" }));
       return;
     }
     await sendStatic(response, url.pathname);
@@ -59,6 +102,7 @@ async function readState() {
     agents: await readJson(join(stateDir, "agents.json"), []),
     workstreams: await readJson(join(stateDir, "workstreams.json"), []),
     artifacts: await readArtifacts(stateDir),
+    commands: await readCommands(),
     events: await readEvents(),
   };
 }
@@ -113,6 +157,47 @@ async function readEvents() {
     .split("\n")
     .filter(Boolean)
     .map((line) => JSON.parse(line));
+}
+
+async function readCommands() {
+  const text = await readFile(join(projectDir, ".orchestrator", "commands.jsonl"), "utf8").catch(() => "");
+  return text
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+}
+
+async function appendCommand(input) {
+  const now = new Date().toISOString();
+  const command = {
+    id: randomUUID(),
+    timestamp: now,
+    status: "queued",
+    source: "dashboard",
+    ...input,
+  };
+  const stateDir = join(projectDir, ".orchestrator");
+  await mkdir(stateDir, { recursive: true });
+  await appendFile(join(stateDir, "commands.jsonl"), `${JSON.stringify(command)}\n`, "utf8");
+  await appendFile(
+    join(stateDir, "events.jsonl"),
+    `${JSON.stringify({
+      timestamp: now,
+      type: "command.queued",
+      commandId: command.id,
+      agentId: command.agentId,
+      message: command.type,
+    })}\n`,
+    "utf8",
+  );
+  return command;
+}
+
+async function readRequestJson(request) {
+  const chunks = [];
+  for await (const chunk of request) chunks.push(chunk);
+  const text = Buffer.concat(chunks).toString("utf8");
+  return text ? JSON.parse(text) : {};
 }
 
 async function readJson(path, fallback) {

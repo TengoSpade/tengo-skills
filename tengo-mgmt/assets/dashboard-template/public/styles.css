@@ -157,6 +157,23 @@ textarea {
   gap: 8px;
 }
 
+.agent-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.secondary-button {
+  background: #eef3f8;
+  border: 1px solid #cbd5e1;
+  color: #253858;
+}
+
+.secondary-button:disabled {
+  color: #7a8699;
+  cursor: wait;
+}
+
 .select-label {
   color: #384459;
   display: grid;
