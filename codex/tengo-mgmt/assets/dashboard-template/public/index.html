@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tengo Mgmt</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Tengo Mgmt</p>
+        <h1 id="project-name">Orchestrator Chat</h1>
+      </div>
+      <div class="status-pill" id="project-platform">platform</div>
+    </header>
+
+    <main class="layout">
+      <section class="chat-panel" aria-labelledby="chat-title">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Orchestrator Chat</p>
+            <h2 id="chat-title">Project control room</h2>
+          </div>
+          <button id="refresh-button" type="button">Refresh</button>
+        </div>
+        <div class="chat-log" id="chat-log"></div>
+        <form class="chat-form" id="chat-form">
+          <label for="chat-input">Message orchestrator</label>
+          <div class="input-row">
+            <input id="chat-input" name="message" placeholder="Ask for status, propose an agent, or update a workstream">
+            <button type="submit">Send</button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="side-panel" aria-labelledby="create-agent-title">
+        <section>
+          <p class="eyebrow">Create Agent</p>
+          <h2 id="create-agent-title">Proposal</h2>
+          <form id="agent-form" class="agent-form">
+            <label>Name <input name="displayName" placeholder="Reviewer"></label>
+            <label>Workstream <input name="workstream" placeholder="review"></label>
+            <label>Model <input name="model" placeholder="project default"></label>
+            <label>Reasoning <input name="reasoningEffort" placeholder="medium"></label>
+            <label>Prompt <textarea name="initialPrompt" placeholder="Review the implementation plan"></textarea></label>
+            <button type="submit">Request approval</button>
+          </form>
+          <p class="hint">New agents after setup stay pending/manual until approved.</p>
+        </section>
+      </aside>
+    </main>
+
+    <section class="workstreams-section" aria-labelledby="workstreams-title">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Workstreams</p>
+          <h2 id="workstreams-title">Agent status by lane</h2>
+        </div>
+      </div>
+      <div class="workstreams" id="workstreams"></div>
+    </section>
+
+    <section class="events-section" aria-labelledby="events-title">
+      <p class="eyebrow">Events</p>
+      <h2 id="events-title">Recent activity</h2>
+      <ol id="events"></ol>
+    </section>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

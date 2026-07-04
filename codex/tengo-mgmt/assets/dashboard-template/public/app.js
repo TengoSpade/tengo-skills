@@ -1,0 +1,124 @@
+const state = {
+  project: {},
+  agents: [],
+  workstreams: [],
+  events: [],
+};
+
+document.getElementById("refresh-button").addEventListener("click", loadDashboard);
+document.getElementById("chat-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const input = document.getElementById("chat-input");
+  addLocalMessage("You", input.value || "Status?");
+  input.value = "";
+});
+document.getElementById("agent-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  addLocalMessage(
+    "Create agent",
+    `${form.get("displayName") || "New agent"} is pending approval for ${form.get("workstream") || "a workstream"} using ${form.get("model") || "project default"} / ${form.get("reasoningEffort") || "medium"}.`,
+  );
+});
+
+await loadDashboard();
+
+async function loadDashboard() {
+  const response = await fetch("/api/state");
+  Object.assign(state, await response.json());
+  renderProject();
+  renderChat();
+  renderWorkstreams();
+  renderEvents();
+}
+
+function renderProject() {
+  document.getElementById("project-name").textContent = state.project.name || "Orchestrator Chat";
+  document.getElementById("project-platform").textContent = state.project.sourcePlatform || "manual";
+}
+
+function renderChat() {
+  const log = document.getElementById("chat-log");
+  log.replaceChildren(
+    messageElement(
+      "Orchestrator",
+      `Tracking ${state.agents.length} agents across ${state.workstreams.length} workstreams. Blocked, pending, and manual agents are visible below.`,
+    ),
+  );
+}
+
+function renderWorkstreams() {
+  const container = document.getElementById("workstreams");
+  const lanes = state.workstreams.length
+    ? state.workstreams
+    : [{ id: "manual", name: "Manual", purpose: "Agents waiting to be connected" }];
+  container.replaceChildren(...lanes.map(workstreamElement));
+}
+
+function renderEvents() {
+  const list = document.getElementById("events");
+  const events = state.events.length
+    ? state.events
+    : [{ type: "dashboard.loaded", message: "Dashboard loaded from .orchestrator state" }];
+  list.replaceChildren(
+    ...events.slice(-12).map((event) => {
+      const item = document.createElement("li");
+      item.className = "event-item";
+      item.textContent = `${event.type}: ${event.message || event.agentId || "recorded"}`;
+      return item;
+    }),
+  );
+}
+
+function workstreamElement(workstream) {
+  const section = document.createElement("article");
+  section.className = "workstream-lane";
+  const agents = state.agents.filter((agent) => agent.workstream === workstream.id || agent.workstream === workstream.name);
+  section.innerHTML = `
+    <h3>${escapeHtml(workstream.name)}</h3>
+    <p class="meta">${escapeHtml(workstream.purpose || "No purpose recorded")}</p>
+    <div class="agent-list"></div>
+  `;
+  const list = section.querySelector(".agent-list");
+  list.replaceChildren(...(agents.length ? agents.map(agentElement) : [emptyAgentElement()]));
+  return section;
+}
+
+function agentElement(agent) {
+  const card = document.createElement("article");
+  card.className = "agent-card";
+  card.innerHTML = `
+    <h3>${escapeHtml(agent.displayName || agent.id)}</h3>
+    <p>${escapeHtml(agent.role || "No role recorded")}</p>
+    <p class="meta">Status: ${escapeHtml(agent.status || "pending")} | Model: ${escapeHtml(agent.model || "project default")} | Reasoning: ${escapeHtml(agent.reasoningEffort || "medium")}</p>
+    <p class="meta">Task: ${escapeHtml(agent.currentTask || "Waiting")}</p>
+  `;
+  return card;
+}
+
+function emptyAgentElement() {
+  const empty = document.createElement("div");
+  empty.className = "agent-card";
+  empty.textContent = "No agents yet. Create agent proposals from chat or the side panel.";
+  return empty;
+}
+
+function addLocalMessage(sender, text) {
+  document.getElementById("chat-log").append(messageElement(sender, text));
+}
+
+function messageElement(sender, text) {
+  const message = document.createElement("div");
+  message.className = "message";
+  message.innerHTML = `<strong>${escapeHtml(sender)}</strong><p>${escapeHtml(text)}</p>`;
+  return message;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
