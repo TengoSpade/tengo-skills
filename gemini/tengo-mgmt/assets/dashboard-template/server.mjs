@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { readFile, readdir } from "node:fs/promises";
+import { basename, extname, join, normalize } from "node:path";
 
 const port = Number(process.env.PORT ?? 4783);
 const projectDir = process.env.TENGO_PROJECT_DIR ?? process.cwd();
@@ -12,6 +12,22 @@ const contentTypes = {
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
 };
+
+const artifactScanRules = [
+  { directory: ".orchestrator", category: "data-state", extensions: [".json", ".jsonl"] },
+  { directory: ".agents", category: "codex-agent-instructions", extensions: [".md", ".json"] },
+  { directory: ".codex", category: "codex-agent-instructions", extensions: [".md", ".json"] },
+  { directory: "agents", category: "codex-agent-instructions", extensions: [".md", ".json"] },
+  { directory: "assets", category: "generated-assets", extensions: [".gif", ".jpg", ".jpeg", ".png", ".svg", ".webp"] },
+  { directory: "generated", category: "generated-assets", extensions: [".gif", ".jpg", ".jpeg", ".png", ".svg", ".webp"] },
+  { directory: "docs", category: "specs-wrapups", extensions: [".md", ".txt"] },
+  { directory: "specs", category: "specs-wrapups", extensions: [".md", ".txt"] },
+  { directory: "wrap-ups", category: "specs-wrapups", extensions: [".md", ".txt"] },
+  { directory: "reviews", category: "review-docs", extensions: [".md", ".txt"] },
+  { directory: "reports", category: "review-docs", extensions: [".md", ".txt"] },
+  { directory: "src", category: "source-outputs", extensions: [".css", ".html", ".js", ".jsx", ".mjs", ".ts", ".tsx"] },
+  { directory: "references", category: "references", extensions: [".md", ".pdf", ".txt"] },
+];
 
 const server = createServer(async (request, response) => {
   try {
@@ -42,8 +58,53 @@ async function readState() {
     project: await readJson(join(stateDir, "project.json"), {}),
     agents: await readJson(join(stateDir, "agents.json"), []),
     workstreams: await readJson(join(stateDir, "workstreams.json"), []),
+    artifacts: await readArtifacts(stateDir),
     events: await readEvents(),
   };
+}
+
+async function readArtifacts(stateDir) {
+  const registered = await readJson(join(stateDir, "artifacts.json"), []);
+  const scanned = await scanArtifacts();
+  const byPath = new Map();
+  for (const artifact of scanned) byPath.set(artifact.path, artifact);
+  for (const artifact of registered) byPath.set(artifact.path || artifact.id, artifact);
+  return [...byPath.values()];
+}
+
+async function scanArtifacts() {
+  const artifacts = [];
+  for (const rule of artifactScanRules) {
+    await scanDirectory(join(projectDir, rule.directory), rule.directory, rule, artifacts, 2);
+  }
+  return artifacts;
+}
+
+async function scanDirectory(absDir, relDir, rule, artifacts, depth) {
+  if (depth < 0) return;
+  const entries = await readdir(absDir, { withFileTypes: true }).catch(() => []);
+  for (const entry of entries) {
+    const relPath = `${relDir}/${entry.name}`;
+    if (entry.isDirectory()) {
+      if (!["node_modules", ".git", "dist", "build"].includes(entry.name)) {
+        await scanDirectory(join(absDir, entry.name), relPath, rule, artifacts, depth - 1);
+      }
+      continue;
+    }
+    if (!entry.isFile() || !rule.extensions.includes(extname(entry.name).toLowerCase())) continue;
+    artifacts.push({
+      id: relPath.replace(/[^a-z0-9]+/gi, "-").replace(/(^-|-$)/g, "").toLowerCase(),
+      title: titleFromPath(entry.name),
+      category: rule.category,
+      path: relPath,
+      status: "complete",
+      description: "",
+    });
+  }
+}
+
+function titleFromPath(path) {
+  return basename(path, extname(path)).replace(/[-_]+/g, " ");
 }
 
 async function readEvents() {

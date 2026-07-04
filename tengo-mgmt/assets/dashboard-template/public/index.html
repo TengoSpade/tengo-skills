@@ -61,6 +61,29 @@
       <div class="workstreams" id="workstreams"></div>
     </section>
 
+    <section class="artifacts-section" aria-labelledby="artifacts-title">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Artifacts</p>
+          <h2 id="artifacts-title">Project files and outputs</h2>
+        </div>
+        <label class="select-label" for="artifact-category-filter">
+          Category
+          <select id="artifact-category-filter">
+            <option value="all">All</option>
+            <option value="codex-agent-instructions">Codex / Agent Instructions</option>
+            <option value="generated-assets">Generated Assets</option>
+            <option value="specs-wrapups">Specs / Wrap-ups</option>
+            <option value="review-docs">Review Docs</option>
+            <option value="source-outputs">Source Outputs</option>
+            <option value="data-state">Data / State</option>
+            <option value="references">References</option>
+          </select>
+        </label>
+      </div>
+      <div class="artifact-list" id="artifacts"></div>
+    </section>
+
     <section class="events-section" aria-labelledby="events-title">
       <p class="eyebrow">Events</p>
       <h2 id="events-title">Recent activity</h2>

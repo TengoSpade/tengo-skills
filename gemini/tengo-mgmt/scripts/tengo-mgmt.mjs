@@ -12,6 +12,16 @@ export const STATUS_VALUES = [
   "closed",
 ];
 
+export const ARTIFACT_CATEGORIES = [
+  "codex-agent-instructions",
+  "generated-assets",
+  "specs-wrapups",
+  "review-docs",
+  "source-outputs",
+  "data-state",
+  "references",
+];
+
 const REQUIRED_AGENT_FIELDS = [
   "displayName",
   "role",
@@ -51,6 +61,7 @@ export function createInitialState(input = {}) {
       normalizeAgent(agent, defaultModel, defaultReasoningEffort),
     ),
     workstreams: (input.workstreams ?? []).map(normalizeWorkstream),
+    artifacts: (input.artifacts ?? []).map((artifact) => normalizeArtifact(artifact, now)),
     events: (input.events ?? []).map((event) => ({
       timestamp: event.timestamp ?? now,
       ...event,
@@ -72,6 +83,7 @@ export async function writeState(projectDir, state) {
   await writeJson(join(orchestratorDir, "project.json"), state.project);
   await writeJson(join(orchestratorDir, "agents.json"), state.agents);
   await writeJson(join(orchestratorDir, "workstreams.json"), state.workstreams);
+  await writeJson(join(orchestratorDir, "artifacts.json"), state.artifacts ?? []);
   const events = (state.events ?? []).map((event) => JSON.stringify(event)).join("\n");
   await writeFile(join(orchestratorDir, "events.jsonl"), events ? `${events}\n` : "", "utf8");
 }
@@ -83,6 +95,7 @@ export async function loadState(projectDir) {
     project: await readJson(join(orchestratorDir, "project.json")),
     agents: await readJson(join(orchestratorDir, "agents.json")),
     workstreams: await readJson(join(orchestratorDir, "workstreams.json")),
+    artifacts: await readJson(join(orchestratorDir, "artifacts.json")).catch(() => []),
     events: eventsText
       .split("\n")
       .filter(Boolean)
@@ -122,8 +135,31 @@ function normalizeWorkstream(workstream) {
   };
 }
 
+function normalizeArtifact(artifact, now) {
+  const category = ARTIFACT_CATEGORIES.includes(artifact.category) ? artifact.category : "references";
+  return {
+    id: artifact.id ?? slugify(artifact.path ?? artifact.title ?? `artifact-${now}`),
+    title: artifact.title ?? artifact.path ?? "Untitled Artifact",
+    category,
+    path: artifact.path ?? "",
+    owningAgent: artifact.owningAgent ?? "",
+    workstream: artifact.workstream ?? "",
+    status: normalizeStatus(artifact.status ?? "queued"),
+    description: artifact.description ?? "",
+    createdAt: artifact.createdAt ?? now,
+    updatedAt: artifact.updatedAt ?? now,
+  };
+}
+
 function normalizeStatus(status) {
   return STATUS_VALUES.includes(status) ? status : "queued";
+}
+
+function slugify(value) {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
 async function writeJson(path, value) {

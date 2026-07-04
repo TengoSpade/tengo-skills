@@ -18,10 +18,11 @@ test("dashboard template is dependency-free and startable", async () => {
   assert.match(server, /createServer/);
   assert.match(server, /\/api\/state/);
   assert.match(server, /\/api\/events/);
+  assert.match(server, /artifacts\.json/);
   assert.match(server, /\.orchestrator/);
 });
 
-test("dashboard UI contains chat-first workstream and agent management surfaces", async () => {
+test("dashboard UI contains chat-first workstream, artifact, and agent management surfaces", async () => {
   const html = await readTemplateFile("public/index.html");
   const js = await readTemplateFile("public/app.js");
   const css = await readTemplateFile("public/styles.css");
@@ -29,6 +30,15 @@ test("dashboard UI contains chat-first workstream and agent management surfaces"
 
   assert.match(combined, /orchestrator chat/i);
   assert.match(combined, /workstreams/i);
+  assert.match(combined, /artifacts/i);
+  assert.match(combined, /artifact-category-filter/i);
+  assert.match(combined, /Codex \/ Agent Instructions/i);
+  assert.match(combined, /Generated Assets/i);
+  assert.match(combined, /Specs \/ Wrap-ups/i);
+  assert.match(combined, /Review Docs/i);
+  assert.match(combined, /Source Outputs/i);
+  assert.match(combined, /Data \/ State/i);
+  assert.match(combined, /References/i);
   assert.match(combined, /agents/i);
   assert.match(combined, /create agent/i);
   assert.match(combined, /model/i);

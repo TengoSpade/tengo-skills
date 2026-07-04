@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import {
+  ARTIFACT_CATEGORIES,
   STATUS_VALUES,
   createInitialState,
   loadState,
@@ -64,6 +65,15 @@ test("createInitialState builds portable project, agent, and workstream state", 
   assert.equal(state.agents[0].reasoningEffort, "high");
   assert.equal(state.agents[0].platformHandles.codex, "thread-123");
   assert.equal(state.workstreams[0].status, "queued");
+  assert.deepEqual(ARTIFACT_CATEGORIES, [
+    "codex-agent-instructions",
+    "generated-assets",
+    "specs-wrapups",
+    "review-docs",
+    "source-outputs",
+    "data-state",
+    "references",
+  ]);
   assert.match(state.createdAt, /^\d{4}-\d{2}-\d{2}T/);
 });
 
@@ -109,6 +119,18 @@ test("writeState and loadState round-trip portable .orchestrator files", async (
         },
       ],
       workstreams: [{ id: "discovery", name: "Discovery", purpose: "Understand scope" }],
+      artifacts: [
+        {
+          id: "artifact-spec",
+          title: "Gameplay Design Spec",
+          category: "specs-wrapups",
+          path: "docs/superpowers/specs/gameplay.md",
+          owningAgent: "agent-planner",
+          workstream: "discovery",
+          status: "complete",
+          description: "Approved design spec",
+        },
+      ],
       events: [{ type: "agent.created", agentId: "agent-planner", message: "Planner started" }],
     });
 
@@ -118,6 +140,8 @@ test("writeState and loadState round-trip portable .orchestrator files", async (
     assert.equal(loaded.project.name, "Round Trip");
     assert.equal(loaded.agents[0].platform, "gemini");
     assert.equal(loaded.workstreams[0].id, "discovery");
+    assert.equal(loaded.artifacts[0].category, "specs-wrapups");
+    assert.equal(loaded.artifacts[0].path, "docs/superpowers/specs/gameplay.md");
     assert.equal(loaded.events[0].type, "agent.created");
   } finally {
     await rm(projectDir, { recursive: true, force: true });

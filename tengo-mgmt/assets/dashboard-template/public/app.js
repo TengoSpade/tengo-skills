@@ -2,10 +2,22 @@ const state = {
   project: {},
   agents: [],
   workstreams: [],
+  artifacts: [],
   events: [],
 };
 
+const artifactCategoryLabels = {
+  "codex-agent-instructions": "Codex / Agent Instructions",
+  "generated-assets": "Generated Assets",
+  "specs-wrapups": "Specs / Wrap-ups",
+  "review-docs": "Review Docs",
+  "source-outputs": "Source Outputs",
+  "data-state": "Data / State",
+  references: "References",
+};
+
 document.getElementById("refresh-button").addEventListener("click", loadDashboard);
+document.getElementById("artifact-category-filter").addEventListener("change", renderArtifacts);
 document.getElementById("chat-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const input = document.getElementById("chat-input");
@@ -29,6 +41,7 @@ async function loadDashboard() {
   renderProject();
   renderChat();
   renderWorkstreams();
+  renderArtifacts();
   renderEvents();
 }
 
@@ -68,6 +81,39 @@ function renderEvents() {
       return item;
     }),
   );
+}
+
+function renderArtifacts() {
+  const container = document.getElementById("artifacts");
+  const selectedCategory = document.getElementById("artifact-category-filter").value;
+  const artifacts = selectedCategory === "all"
+    ? state.artifacts
+    : state.artifacts.filter((artifact) => artifact.category === selectedCategory);
+
+  if (!artifacts.length) {
+    const empty = document.createElement("article");
+    empty.className = "artifact-card";
+    empty.textContent = "No artifacts found for this category yet.";
+    container.replaceChildren(empty);
+    return;
+  }
+
+  container.replaceChildren(...artifacts.map(artifactElement));
+}
+
+function artifactElement(artifact) {
+  const card = document.createElement("article");
+  card.className = "artifact-card";
+  card.innerHTML = `
+    <div>
+      <p class="meta">${escapeHtml(artifactCategoryLabels[artifact.category] || "References")}</p>
+      <h3>${escapeHtml(artifact.title || artifact.path || "Untitled Artifact")}</h3>
+    </div>
+    <p class="artifact-path">${escapeHtml(artifact.path || "No path recorded")}</p>
+    <p>${escapeHtml(artifact.description || "No description recorded")}</p>
+    <p class="meta">Status: ${escapeHtml(artifact.status || "recorded")} | Owner: ${escapeHtml(artifact.owningAgent || "unassigned")} | Workstream: ${escapeHtml(artifact.workstream || "none")}</p>
+  `;
+  return card;
 }
 
 function workstreamElement(workstream) {

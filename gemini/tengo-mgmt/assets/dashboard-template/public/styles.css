@@ -21,6 +21,7 @@ textarea {
 .topbar,
 .layout,
 .workstreams-section,
+.artifacts-section,
 .events-section {
   margin: 0 auto;
   max-width: 1180px;
@@ -67,6 +68,7 @@ button {
 .chat-panel,
 .side-panel,
 .workstreams-section,
+.artifacts-section,
 .events-section {
   background: #fff;
   border: 1px solid #d9e0ea;
@@ -90,6 +92,7 @@ button {
 
 .message,
 .agent-card,
+.artifact-card,
 .event-item {
   background: #f8fafc;
   border: 1px solid #e0e7f0;
@@ -113,6 +116,7 @@ button {
 }
 
 input,
+select,
 textarea {
   border: 1px solid #cbd5e1;
   border-radius: 6px;
@@ -153,12 +157,53 @@ textarea {
   gap: 8px;
 }
 
+.select-label {
+  color: #384459;
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.artifact-list {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.artifact-card {
+  display: grid;
+  gap: 6px;
+}
+
+.artifact-card h3 {
+  margin-bottom: 0;
+}
+
+.artifact-path {
+  color: #253858;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
 .meta {
   color: #5b677a;
   font-size: 13px;
 }
 
 @media (max-width: 760px) {
+  .panel-header {
+    align-items: stretch;
+    display: grid;
+    gap: 12px;
+  }
+
+  .select-label {
+    min-width: 0;
+  }
+
   .layout {
     grid-template-columns: 1fr;
   }

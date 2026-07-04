@@ -19,7 +19,8 @@ Tengo Mgmt is a platform-neutral orchestration skill. Use it to help a user star
 5. Create the initial `.orchestrator/` state with `scripts/tengo-mgmt.mjs`.
 6. Create initial agents automatically when platform tools support it. If they do not, mark agents `pending` or `manual`.
 7. Start or copy the dashboard template from `assets/dashboard-template/`.
-8. Keep state updated as agents are messaged, blocked, completed, reassigned, or closed.
+8. Register important artifacts as agents create files, specs, reviews, assets, or state outputs.
+9. Keep state updated as agents are messaged, blocked, completed, reassigned, or closed.
 
 ## Agent Creation Rules
 
@@ -36,9 +37,26 @@ The shared state lives in `.orchestrator/`:
 - `project.json`: project identity, goal, constraints, success criteria, source platform, and default model policy.
 - `agents.json`: stable project-local agent ids plus optional platform handles.
 - `workstreams.json`: project workstream lanes, dependencies, blockers, and status.
+- `artifacts.json`: registered project outputs, instruction files, assets, specs, review docs, references, and state data.
 - `events.jsonl`: append-only activity feed.
 
 Do not make dashboard behavior depend on a platform-specific thread or session id. Store those ids only as optional handles on a stable agent id.
+
+## Artifacts
+
+The dashboard should include an Artifacts section with a category dropdown. Agents should register important outputs in `artifacts.json`; the dashboard may also auto-scan known project folders for common files.
+
+Use these artifact categories:
+
+- Codex / Agent Instructions (`codex-agent-instructions`): skill files, agent prompts, platform instructions, or generated agent definitions.
+- Generated Assets (`generated-assets`): images, audio, videos, sprites, mockups, and other created media.
+- Specs / Wrap-ups (`specs-wrapups`): requirements, plans, specifications, session wrap-ups, and handoff notes.
+- Review Docs (`review-docs`): code review notes, QA reports, risk reviews, and acceptance reports.
+- Source Outputs (`source-outputs`): generated code files, scripts, build outputs, and implementation artifacts that matter to the project history.
+- Data / State (`data-state`): orchestration JSON, event logs, datasets, exports, and other machine-readable state.
+- References (`references`): source material, research notes, linked docs, PDFs, or external-context summaries.
+
+Each artifact entry should include `id`, `title`, `category`, `path`, `status`, and optional `owningAgent`, `workstream`, and `description`.
 
 ## Dashboard
 
@@ -47,6 +65,7 @@ The dashboard is per-project and chat-first. It should show:
 - Orchestrator chat as the main surface.
 - Workstream lanes.
 - Agent cards with status, current task, blockers, model, reasoning effort, and actions.
+- Artifacts with filters for Codex / Agent Instructions, Generated Assets, Specs / Wrap-ups, Review Docs, Source Outputs, Data / State, and References.
 - Proposed-agent creation with an approval step after initial setup.
 - Recent activity from `events.jsonl`.
 
